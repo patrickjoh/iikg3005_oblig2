@@ -1,0 +1,6 @@
+  backend "azurerm" {
+    resource_group_name  = "pbj-rg-backend"
+    storage_account_name = "something"
+    container_name       = "tfstate"
+    key                  = locals.workspace_key
+  }

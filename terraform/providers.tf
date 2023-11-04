@@ -2,21 +2,25 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "3.73.0"
-    }
-    random = {
-    source = "hashicorp/random"
-    version = "3.5.1"
+      version = "3.75.0"
     }
   }
   backend "azurerm" {
-    resource_group_name  = "rg-backend-tfstate"
-    storage_account_name = "sabetfs3a9npz46p2"
+    resource_group_name  = "pbj-rg-backend"
+    storage_account_name = "sabetshhfqxgftfm"
     container_name       = "tfstate"
-    key                  = "infra.terraform.tfstate"
+    key                  = "terraform.tfstate"
   }
 }
 
 provider "azurerm" {
-  features {}
+  features {
+    key_vault {
+      purge_soft_delete_on_destroy    = true
+      recover_soft_deleted_key_vaults = true
+    }
+    resource_group {
+       prevent_deletion_if_contains_resources = false
+   }
+  }
 }
