@@ -36,10 +36,14 @@ jobs:
       # You may pin to the exact commit or the version.
       # uses: terraform-linters/setup-tflint@19a52fbac37dacb22a09518e4ef6ee234f2d4987
         uses: terraform-linters/setup-tflint@v4.0.0
-        with:
-          # TFLint version to install
-          tflint_version: default # optional, default is latest
-          # GitHub token - used when getting the latest version of tflint
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          # Installs a wrapper script to wrap subsequent calls to `tflint` and expose `stdout`, `stderr`, and `exitcode` outputs
-          tflint_wrapper: false # optional, default is false
+      - name: Show version
+        run: tflint --version
+    
+      - name: Init TFLint
+        run: tflint --init
+        env:
+        # https://github.com/terraform-linters/tflint/blob/master/docs/user-guide/plugins.md#avoiding-rate-limiting
+          GITHUB_TOKEN: ${{ github.token }}
+    
+      - name: Run TFLint
+        run: tflint -f compact
