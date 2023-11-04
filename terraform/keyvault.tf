@@ -1,7 +1,7 @@
 data "azurerm_client_config" "current" {}
 
 resource "azurerm_key_vault" "kv" {
-  name                        = "${var.base_name}${var.kv_name}${random_string.random_string.result}"
+  name                        = "${var.base_name}${var.kv_name}${random_string.random_string.result}${local.workspace_suffix}"
   location                    = azurerm_resource_group.rg.location
   resource_group_name         = azurerm_resource_group.rg.name
   enabled_for_disk_encryption = true
@@ -31,7 +31,7 @@ resource "azurerm_key_vault" "kv" {
 }
 
 resource "azurerm_key_vault_secret" "sa_accesskey" {
-  name         = "${var.sa_accesskey_name}${azurerm_storage_account.sa.name}"
+  name         = "${var.sa_accesskey_name}${azurerm_storage_account.sa.name}${local.workspace_suffix}"
   value        = azurerm_storage_account.sa.primary_access_key
   key_vault_id = azurerm_key_vault.kv.id
   depends_on = [
@@ -40,7 +40,7 @@ resource "azurerm_key_vault_secret" "sa_accesskey" {
 }
 
 resource "azurerm_key_vault_secret" "vm_password" {
-  name         = "${var.vm_name}${random_string.random_string.result}"
+  name         = "${var.vm_name}${random_string.random_string.result}${local.workspace_suffix}"
   value        = random_password.password.result
   key_vault_id = azurerm_key_vault.kv.id
   depends_on = [
