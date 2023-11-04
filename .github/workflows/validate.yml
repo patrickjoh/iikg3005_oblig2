@@ -5,7 +5,9 @@ name: Validate Infrastructure
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events
-  workflow_call:
+  push:
+    branches-ignore:
+      - 'main'
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -27,13 +29,19 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
+        # Runs a single command using the runners shell
       - name: Terraform init
         id: init
         run: terraform init
         working-directory: ${{ env.WORKING_DIR }}          
 
+      - name: Terraform fmt
+        id: validate
+        run: terraform fmt
+        working-directory: ${{ env.WORKING_DIR }}
+
       - name: Terraform validate
         id: validate
         run: terraform validate
         working-directory: ${{ env.WORKING_DIR }}
+
