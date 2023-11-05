@@ -19,21 +19,25 @@ jobs:
   determine_action:
     runs-on: ubuntu-latest
     outputs:
-      terraform_action: ${{ steps.set_output.outputs.action }}
+      terraform_action: ${{ steps.check_message.outputs.action }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Check commit message for 'destroy'
         id: check_message
-        run: |
-          echo "Checking commit message..."
-          if echo "${{ github.event.head_commit.message }}" | grep -iq "destroy"; then
-            echo "action=destroy" >> $GITHUB_ENV
-          else
-            echo "action=apply" >> $GITHUB_ENV
-      - name: Set output
-        id: set_output
-        run: echo "::set-output name=action::$action"
+        uses: actions/github-script@v5
+        with:
+          script: |
+            const { GitHub, context } = require("@actions/github");
+            const core = require("@actions/core");
+            const message = context.payload.head_commit.message.toLowerCase();
+            if (message.includes('destroy')) {
+              core.setOutput("action", "destroy");
+            } else {
+              core.setOutput("action", "apply");
+            }
+  
+
 
   dev_stage:
     needs: determine_action
@@ -50,7 +54,7 @@ jobs:
         run: terraform workspace select dev || terraform workspace new dev
         working-directory: ${{ env.WORKING_DIR }}
       
-      - name: Terraform apply or destroy dev
+      - name: Terraform apply dev
         run: |
           if [ "${{ needs.determine_action.outputs.terraform_action }}" == "destroy" ]; then
             echo "Running terraform destroy"
@@ -76,7 +80,7 @@ jobs:
         run: terraform workspace select stage || terraform workspace new stage
         working-directory: ${{ env.WORKING_DIR }}
       
-      - name: Terraform apply or destroy stage
+      - name: Terraform apply stage
         run: |
           if [ "${{ needs.determine_action.outputs.terraform_action }}" == "destroy" ]; then
             echo "Running terraform destroy"
@@ -103,7 +107,7 @@ jobs:
         run: terraform workspace select prod || terraform workspace new prod
         working-directory: ${{ env.WORKING_DIR }}
       
-      - name: Terraform apply or destroy prod
+      - name: Terraform apply prod
         run: |
           if [ "${{ needs.determine_action.outputs.terraform_action }}" == "destroy" ]; then
             echo "Running terraform destroy"
