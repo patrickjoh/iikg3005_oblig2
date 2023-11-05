@@ -13,6 +13,7 @@ on:
         description: 'Action to be performed by Terraform'
         required: true
         default: 'apply'
+        type: choice
         options:
           - 'apply'
           - 'destroy'
