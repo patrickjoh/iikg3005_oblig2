@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 0.13"  # Replace with your minimum required version
+  required_version = ">= 0.13" # Replace with your minimum required version
 
   required_providers {
     azurerm = {
@@ -8,7 +8,7 @@ terraform {
     }
     random = {
       source  = "hashicorp/random"
-      version = ">= 3.0.0"  # Replace with your desired version constraint
+      version = ">= 3.0.0" # Replace with your desired version constraint
     }
   }
   backend "azurerm" {
