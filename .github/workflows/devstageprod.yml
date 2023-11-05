@@ -28,12 +28,12 @@ jobs:
         uses: actions/github-script@v5
         with:
           script: |
-            const message = context.payload.head_commit.message.toLowerCase();
-            if (message.includes('destroy')) {
+            if (context.event.head_commit.message.toLowerCase().includes('destroy')) {
               core.setOutput("action", "destroy");
             } else {
               core.setOutput("action", "apply");
             }
+      
       
   
 
