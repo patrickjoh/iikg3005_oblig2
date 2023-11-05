@@ -6,7 +6,16 @@ on:
       - main
     paths:
       - 'terraform/**'
+
   workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to be performed by Terraform'
+        required: true
+        default: 'apply'
+        options:
+          - 'apply'
+          - 'destroy'
 
 env:
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -16,27 +25,7 @@ env:
   WORKING_DIR: ./terraform
 
 jobs:
-  determine_action:
-    runs-on: ubuntu-latest
-    outputs:
-      terraform_action: ${{ steps.check_message.outputs.action }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Check commit message for 'destroy'
-        id: check_message
-        uses: actions/github-script@v5
-        with:
-          script: |
-            const message = github.event.head_commit.message.toLowerCase();
-            if (message.includes('destroy')) {
-              core.setOutput("action", "destroy");
-            } else {
-              core.setOutput("action", "apply");
-            }
-
   dev_stage:
-    needs: determine_action
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -51,18 +40,17 @@ jobs:
         working-directory: ${{ env.WORKING_DIR }}
       
       - name: Terraform apply dev
-        run: |
-          if [ "${{ needs.determine_action.outputs.terraform_action }}" == "destroy" ]; then
-            echo "Running terraform destroy"
-            terraform destroy -auto-approve
-          else
-            echo "Running terraform apply"
-            terraform apply -auto-approve
-          fi
+        if: github.event.inputs.action == 'apply'
+        run: terraform apply -auto-approve
+        working-directory: ${{ env.WORKING_DIR }}
+    
+      - name: Terraform destroy dev
+        if: github.event.inputs.action == 'destroy'
+        run: terraform destroy -auto-approve
         working-directory: ${{ env.WORKING_DIR }}
 
   stage_prod:
-    needs: [determine_action, dev_stage]
+    needs: dev_stage
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -77,18 +65,17 @@ jobs:
         working-directory: ${{ env.WORKING_DIR }}
       
       - name: Terraform apply stage
-        run: |
-          if [ "${{ needs.determine_action.outputs.terraform_action }}" == "destroy" ]; then
-            echo "Running terraform destroy"
-            terraform destroy -auto-approve
-          else
-            echo "Running terraform apply"
-            terraform apply -auto-approve
-          fi
+        if: github.event.inputs.action == 'apply'
+        run: terraform apply -auto-approve
+        working-directory: ${{ env.WORKING_DIR }}
+    
+      - name: Terraform destroy stage
+        if: github.event.inputs.action == 'destroy'
+        run: terraform destroy -auto-approve
         working-directory: ${{ env.WORKING_DIR }}
 
   prod:
-    needs: [determine_action, stage_prod]
+    needs: stage_prod
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -104,12 +91,11 @@ jobs:
         working-directory: ${{ env.WORKING_DIR }}
       
       - name: Terraform apply prod
-        run: |
-          if [ "${{ needs.determine_action.outputs.terraform_action }}" == "destroy" ]; then
-            echo "Running terraform destroy"
-            terraform destroy -auto-approve
-          else
-            echo "Running terraform apply"
-            terraform apply -auto-approve
-          fi
+        if: github.event.inputs.action == 'apply'
+        run: terraform apply -auto-approve
+        working-directory: ${{ env.WORKING_DIR }}
+    
+      - name: Terraform destroy prod
+        if: github.event.inputs.action == 'destroy'
+        run: terraform destroy -auto-approve
         working-directory: ${{ env.WORKING_DIR }}
