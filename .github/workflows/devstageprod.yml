@@ -19,21 +19,21 @@ jobs:
   determine_action:
     runs-on: ubuntu-latest
     outputs:
-      terraform_action: ${{ steps.check_message.outputs.action }}
+      terraform_action: ${{ steps.set_output.outputs.action }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Check commit message for 'destroy'
         id: check_message
         run: |
+          echo "Checking commit message..."
           if echo "${{ github.event.head_commit.message }}" | grep -iq "destroy"; then
-            echo "Commit message contains 'destroy'."
-            echo "::set-output name=action::destroy"
+            echo "action=destroy" >> $GITHUB_ENV
           else
-            echo "Commit message does not contain 'destroy'."
-            echo "::set-output name=action::apply"
-          fi
-
+            echo "action=apply" >> $GITHUB_ENV
+      - name: Set output
+        id: set_output
+        run: echo "::set-output name=action::$action"
 
   dev_stage:
     needs: determine_action
@@ -50,7 +50,7 @@ jobs:
         run: terraform workspace select dev || terraform workspace new dev
         working-directory: ${{ env.WORKING_DIR }}
       
-      - name: Terraform apply dev
+      - name: Terraform apply or destroy dev
         run: |
           if [ "${{ needs.determine_action.outputs.terraform_action }}" == "destroy" ]; then
             echo "Running terraform destroy"
@@ -76,7 +76,7 @@ jobs:
         run: terraform workspace select stage || terraform workspace new stage
         working-directory: ${{ env.WORKING_DIR }}
       
-      - name: Terraform apply stage
+      - name: Terraform apply or destroy stage
         run: |
           if [ "${{ needs.determine_action.outputs.terraform_action }}" == "destroy" ]; then
             echo "Running terraform destroy"
@@ -103,7 +103,7 @@ jobs:
         run: terraform workspace select prod || terraform workspace new prod
         working-directory: ${{ env.WORKING_DIR }}
       
-      - name: Terraform apply prod
+      - name: Terraform apply or destroy prod
         run: |
           if [ "${{ needs.determine_action.outputs.terraform_action }}" == "destroy" ]; then
             echo "Running terraform destroy"
