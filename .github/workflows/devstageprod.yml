@@ -1,0 +1,114 @@
+name: Terraform CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+  workflow_dispatch:
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  WORKING_DIR: ./terraform
+
+jobs:
+  determine_action:
+    runs-on: ubuntu-latest
+    outputs:
+      terraform_action: ${{ steps.check_message.outputs.action }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Check commit message for 'destroy'
+        id: check_message
+        run: |
+          if echo "${{ github.event.head_commit.message }}" | grep -iq "destroy"; then
+            echo "Commit message contains 'destroy'."
+            echo "::set-output name=action::destroy"
+          else
+            echo "Commit message does not contain 'destroy'."
+            echo "::set-output name=action::apply"
+          fi
+
+
+  dev_stage:
+    needs: determine_action
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Terraform init
+        run: terraform init
+        working-directory: ${{ env.WORKING_DIR }}
+        
+      - name: Terraform workspace select or create dev
+        run: terraform workspace select dev || terraform workspace new dev
+        working-directory: ${{ env.WORKING_DIR }}
+      
+      - name: Terraform apply dev
+        run: |
+          if [ "${{ needs.determine_action.outputs.terraform_action }}" == "destroy" ]; then
+            echo "Running terraform destroy"
+            terraform destroy -auto-approve
+          else
+            echo "Running terraform apply"
+            terraform apply -auto-approve
+          fi
+        working-directory: ${{ env.WORKING_DIR }}
+
+  stage_prod:
+    needs: [determine_action, dev_stage]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Terraform init
+        run: terraform init
+        working-directory: ${{ env.WORKING_DIR }}
+        
+      - name: Terraform workspace select or create stage
+        run: terraform workspace select stage || terraform workspace new stage
+        working-directory: ${{ env.WORKING_DIR }}
+      
+      - name: Terraform apply stage
+        run: |
+          if [ "${{ needs.determine_action.outputs.terraform_action }}" == "destroy" ]; then
+            echo "Running terraform destroy"
+            terraform destroy -auto-approve
+          else
+            echo "Running terraform apply"
+            terraform apply -auto-approve
+          fi
+        working-directory: ${{ env.WORKING_DIR }}
+
+  prod:
+    needs: [determine_action, stage_prod]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Terraform init
+        run: terraform init
+        working-directory: ${{ env.WORKING_DIR }}
+        
+      - name: Terraform workspace select or create prod
+        run: terraform workspace select prod || terraform workspace new prod
+        working-directory: ${{ env.WORKING_DIR }}
+      
+      - name: Terraform apply prod
+        run: |
+          if [ "${{ needs.determine_action.outputs.terraform_action }}" == "destroy" ]; then
+            echo "Running terraform destroy"
+            terraform destroy -auto-approve
+          else
+            echo "Running terraform apply"
+            terraform apply -auto-approve
+          fi
+        working-directory: ${{ env.WORKING_DIR }}
