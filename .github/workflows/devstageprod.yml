@@ -28,7 +28,6 @@ jobs:
         uses: actions/github-script@v5
         with:
           script: |
-            const core = require("@actions/core");
             const message = context.payload.head_commit.message.toLowerCase();
             if (message.includes('destroy')) {
               core.setOutput("action", "destroy");
